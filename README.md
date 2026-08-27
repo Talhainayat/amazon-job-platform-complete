@@ -46,7 +46,8 @@ amazon-job-platform/
 
 ### Core tables
 `users`, `candidates`, `candidate_preferences`, `jobs`, `matches`,
-`applications`, `notifications`, `audit_logs` — see `backend/app/models/`.
+`applications`, `notifications`, `audit_logs`, `contact_inquiries` — see
+`backend/app/models/`.
 
 ### Matching engine
 Rule-based, configurable via environment variables (`MATCH_WEIGHT_LOCATION`,
@@ -161,7 +162,8 @@ on your machine).
 
 Routes are namespaced under `/api`:
 `/api/auth`, `/api/candidates`, `/api/jobs`, `/api/matches`,
-`/api/applications`, `/api/notifications`, `/api/admin`.
+`/api/applications`, `/api/notifications`, `/api/admin`, and the public
+`/api/contact/inquiries` form endpoint.
 Full interactive docs at `/docs` once the backend is running.
 
 ---
