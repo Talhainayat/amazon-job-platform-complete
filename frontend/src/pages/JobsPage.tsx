@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Job, JobListResponse, apiError, jobsApi, payLabel } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
+import LazyImage from '../components/LazyImage'
 
 const emptyFilters = { q: '', location: '', job_type: '', shift: '', min_pay: '', skills: '', sort: 'newest' }
 
@@ -82,7 +83,7 @@ export default function JobsPage() {
       {loading && <div className="skeleton" />}
       {error && <div className="alert error">{error}</div>}
       {!loading && data && data.items.length === 0 && <div className="card empty">No jobs match those filters. Try a wider location or clear filters.</div>}
-      <div className="grid" style={{ marginTop: '1rem' }}>
+      <div className="grid jobs-grid" style={{ marginTop: '1rem' }}>
         {data?.items.map((job) => (
           <JobCard key={job.id} job={job} />
         ))}
@@ -99,28 +100,41 @@ export default function JobsPage() {
 
 function JobCard({ job }: { job: Job }) {
   return (
-    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-      <div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Link to={`/jobs/${job.id}`}><strong>{job.title}</strong></Link>
-          <span className={`badge ${job.status}`}>{job.status}</span>
+    <Link to={`/jobs/${job.id}`} style={{ textDecoration: 'none' }}>
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', cursor: 'pointer', height: '100%', transition: 'all 0.3s ease' }}>
+        {job.image_url && (
+          <div style={{ width: '100%', height: '160px', borderRadius: '8px', overflow: 'hidden', marginBottom: '0.4rem' }}>
+            <LazyImage
+              src={job.image_url}
+              alt={job.title}
+              width={400}
+              height={160}
+              fallback="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 160%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22400%22 height=%22160%22/%3E%3C/svg%3E"
+            />
+          </div>
+        )}
+        <div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <strong>{job.title}</strong>
+            <span className={`badge ${job.status}`}>{job.status}</span>
+          </div>
+          <div className="job-meta">
+            <span>{job.company || 'Hiring company'}</span>
+            <span>{[job.city || job.location, job.province].filter(Boolean).join(', ') || 'Location TBA'}</span>
+            <span>{job.shift || 'Shift TBA'}</span>
+            <span>{job.job_type || 'Type TBA'}</span>
+            <span>{payLabel(job)}</span>
+          </div>
+          {job.match_explanation && job.match_explanation.length > 0 && (
+            <p className="notice">{job.match_explanation.slice(0, 2).join(' · ')}</p>
+          )}
         </div>
-        <div className="job-meta">
-          <span>{job.company || 'Hiring company'}</span>
-          <span>{[job.city || job.location, job.province].filter(Boolean).join(', ') || 'Location TBA'}</span>
-          <span>{job.shift || 'Shift TBA'}</span>
-          <span>{job.job_type || 'Type TBA'}</span>
-          <span>{payLabel(job)}</span>
-        </div>
-        {job.match_explanation && job.match_explanation.length > 0 && (
-          <p className="notice">{job.match_explanation.slice(0, 2).join(' · ')}</p>
+        {typeof job.match_score === 'number' && (
+          <div className="match" style={{ ['--p' as string]: job.match_score, marginTop: 'auto' }}>
+            <span>{Math.round(job.match_score)}%</span>
+          </div>
         )}
       </div>
-      {typeof job.match_score === 'number' && (
-        <div className="match" style={{ ['--p' as string]: job.match_score }}>
-          <span>{Math.round(job.match_score)}%</span>
-        </div>
-      )}
-    </div>
+    </Link>
   )
 }

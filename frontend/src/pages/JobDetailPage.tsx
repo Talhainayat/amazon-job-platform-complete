@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Application, Job, apiError, applicationsApi, jobsApi, payLabel } from '../services/api'
+import LazyImage from '../components/LazyImage'
 
 export default function JobDetailPage() {
   const { jobId } = useParams()
@@ -95,6 +96,15 @@ export default function JobDetailPage() {
           </div>
         )}
       </div>
+      {job.image_url && (
+        <div className="job-image-banner">
+          <LazyImage
+            src={job.image_url}
+            alt={job.title}
+            fallback="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 800 300%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22800%22 height=%22300%22/%3E%3C/svg%3E"
+          />
+        </div>
+      )}
       <div className="grid grid-2">
         <div className="card">
           <h2>About this role</h2>

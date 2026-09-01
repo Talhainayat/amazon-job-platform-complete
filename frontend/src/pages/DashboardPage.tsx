@@ -272,7 +272,7 @@ function JourneyStep({ number, label, complete }: { number: string; label: strin
 
 function Stat({ label, value, hint }: { label: string; value: number | string; hint?: string }) {
   return (
-    <div className="card stat">
+    <div className="card stat-card glassmorphic">
       <span>{label}</span>
       <b>{value}</b>
       {hint && <span>{hint}</span>}

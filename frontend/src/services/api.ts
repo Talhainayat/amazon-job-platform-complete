@@ -115,6 +115,7 @@ export interface Job {
   application_url?: string
   badge_status?: string
   is_active?: boolean
+  image_url?: string
 }
 
 export interface JobListResponse {
