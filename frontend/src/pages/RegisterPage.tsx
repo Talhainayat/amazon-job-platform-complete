@@ -1,5 +1,7 @@
 import { FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import confetti from 'canvas-confetti'
+import { motion } from 'framer-motion'
 import { apiError, registerCandidate } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 
@@ -29,6 +31,13 @@ export default function RegisterPage() {
     try {
       const res = await registerCandidate({ name, email, password, phone, location, postal_code: postalCode, preferred_shift: shift, work_eligibility: eligibility, amazon_portal_link: portalLink })
       await login(res.access_token, res.role)
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.65 },
+        colors: ['#ffb000', '#146ef5', '#16a34a'],
+        disableForReducedMotion: true,
+      })
       navigate('/profile')
     } catch (err) {
       setError(apiError(err, 'Could not create your account'))
@@ -39,7 +48,12 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-wrap">
-      <div className="card auth-card">
+      <motion.div
+        className="card auth-card"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+      >
         <h1>Create your profile</h1>
         <p className="lede">Candidates can search jobs, see match scores, and apply in minutes.</p>
         <form onSubmit={handleSubmit} className="grid" style={{ marginTop: '1.2rem' }}>
@@ -69,13 +83,23 @@ export default function RegisterPage() {
           <label className="field"><span>Amazon portal link</span><input type="url" value={portalLink} onChange={(e) => setPortalLink(e.target.value)} /></label>
           {error && <div className="alert error">{error}</div>}
           <button className="btn block" type="submit" disabled={loading}>
-            {loading ? 'Creating account…' : 'Create account'}
+            {loading ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <motion.span
+                  aria-hidden="true"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                  style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.45)', borderTopColor: '#fff', borderRadius: '50%' }}
+                />
+                Creating account…
+              </span>
+            ) : 'Create account'}
           </button>
         </form>
         <p className="notice" style={{ marginTop: '1rem' }}>
           Already registered? <Link to="/login">Log in</Link>
         </p>
-      </div>
+      </motion.div>
     </div>
   )
 }

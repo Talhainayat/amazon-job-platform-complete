@@ -1,10 +1,28 @@
 import { FormEvent, MouseEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import confetti from 'canvas-confetti'
+import { motion, type Variants } from 'framer-motion'
 import { Job, JobListResponse, apiError, currencyApi, jobsApi, payLabel } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 import LazyImage from '../components/LazyImage'
 
 const emptyFilters = { q: '', location: '', job_type: '', shift: '', min_pay: '', skills: '', sort: 'newest' }
+
+const jobGridVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.08 },
+  },
+}
+
+const jobCardVariants: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.42, ease: 'easeOut' },
+  },
+}
 
 export default function JobsPage() {
   const { role } = useAuth()
@@ -90,11 +108,17 @@ export default function JobsPage() {
       {loading && <div className="skeleton" />}
       {error && <div className="alert error">{error}</div>}
       {!loading && data && data.items.length === 0 && <div className="card empty">No jobs match those filters. Try a wider location or clear filters.</div>}
-      <div className="grid jobs-grid" style={{ marginTop: '1rem' }}>
+      <motion.div
+        className="grid jobs-grid"
+        style={{ marginTop: '1rem' }}
+        variants={jobGridVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {data?.items.map((job) => (
           <JobCard key={job.id} job={job} currency={currency} rates={rates} />
         ))}
-      </div>
+      </motion.div>
       {data && data.total > data.page_size && (
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
           <button className="btn secondary" disabled={page <= 1} onClick={() => { const p = page - 1; setPage(p); load(p) }}>Previous</button>
@@ -112,6 +136,13 @@ function JobCard({ job, currency, rates }: { job: Job; currency: string; rates: 
     if (!job.external_url) return
     try {
       await jobsApi.applyExternal(job.id)
+      confetti({
+        particleCount: 80,
+        spread: 65,
+        origin: { y: 0.72 },
+        colors: ['#ffb000', '#146ef5', '#111827'],
+        disableForReducedMotion: true,
+      })
       window.open(job.external_url, '_blank', 'noopener,noreferrer')
     } catch {
       window.open(job.external_url, '_blank', 'noopener,noreferrer')
@@ -120,7 +151,16 @@ function JobCard({ job, currency, rates }: { job: Job; currency: string; rates: 
 
   return (
     <Link to={`/jobs/${job.id}`} style={{ textDecoration: 'none' }}>
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', cursor: 'pointer', height: '100%', transition: 'all 0.3s ease' }}>
+      <motion.div
+        className="card"
+        variants={jobCardVariants}
+        whileHover={{
+          y: -5,
+          boxShadow: '0 18px 42px rgba(20, 110, 245, 0.2), 0 0 0 1px rgba(20, 110, 245, 0.24)',
+        }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', cursor: 'pointer', height: '100%' }}
+      >
         {job.image_url && (
           <div style={{ width: '100%', height: '160px', borderRadius: '8px', overflow: 'hidden', marginBottom: '0.4rem' }}>
             <LazyImage
@@ -136,7 +176,22 @@ function JobCard({ job, currency, rates }: { job: Job; currency: string; rates: 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <strong>{job.title}</strong>
             <span className={`badge ${job.status}`}>{job.status}</span>
-            {job.external_url && job.is_official_link && <span className="badge">Verified official listing</span>}
+            {job.external_url && job.is_official_link && (
+              <motion.span
+                className="badge"
+                animate={{
+                  boxShadow: [
+                    '0 0 0 0 rgba(20, 110, 245, 0.35)',
+                    '0 0 0 4px rgba(20, 110, 245, 0.08)',
+                    '0 0 0 0 rgba(20, 110, 245, 0.35)',
+                  ],
+                }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ border: '1px solid rgba(20, 110, 245, 0.65)' }}
+              >
+                Verified Amazon Listing
+              </motion.span>
+            )}
           </div>
           <div className="job-meta">
             <span>{job.company || 'Hiring company'}</span>
@@ -159,7 +214,7 @@ function JobCard({ job, currency, rates }: { job: Job; currency: string; rates: 
             Apply on Official Site ↗
           </button>
         )}
-      </div>
+      </motion.div>
     </Link>
   )
 }
