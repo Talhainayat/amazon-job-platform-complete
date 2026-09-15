@@ -40,6 +40,8 @@ class SampleFeedSource(JobSource):
                     pay_max=row.get("pay_max"),
                     pay_period=row.get("pay_period"),
                     job_url=row.get("job_url"),
+                    external_url=row.get("external_url") or row.get("job_url"),
+                    is_official_link=row.get("is_official_link", True),
                     posted_at=now,
                     source=self.name,
                 )

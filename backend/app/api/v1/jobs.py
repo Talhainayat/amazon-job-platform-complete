@@ -1,11 +1,14 @@
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import RedirectResponse
+from urllib.parse import urlparse
 from sqlalchemy import or_  # pyright: ignore[reportMissingImports]
 from sqlalchemy.orm import Session, joinedload  # pyright: ignore[reportMissingImports]
 
-from app.api.deps import get_current_user_optional, get_db, require_admin
-from app.models.application import Application
+from app.api.deps import get_current_user, get_current_user_optional, get_db, require_admin
+from app.models.application import Application, ApplicationStatus
 from app.models.audit_log import AuditLog
 from app.models.candidate import Candidate
 from app.models.job import Job, JobStatus
@@ -15,6 +18,7 @@ from app.schemas.job import JobCreate, JobListResponse, JobOut, JobUpdate
 from app.services.geo import haversine_km, resolve_point
 from app.services.matching import generate_matches_for_candidate, score_candidate_job
 from app.services.notification_service import create_notification
+from app.services.job_ingest import import_live_jobs
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
@@ -211,6 +215,17 @@ def list_jobs(
     return JobListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
+@router.post("/import-live")
+def import_live_job_listings(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    imported, skipped = import_live_jobs(db)
+    db.commit()
+    for job in imported:
+        generate_matches_for_job(db, job, commit=True)
+    db.add(AuditLog(user_id=admin.id, action="jobs_import_live", entity_type="job", details=f"{len(imported)} imported"))
+    db.commit()
+    return {"source": "arbeitnow", "imported": len(imported), "skipped_duplicates": skipped}
+
+
 @router.get("/{job_id}", response_model=JobOut)
 def get_job(
     job_id: int,
@@ -222,6 +237,56 @@ def get_job(
         if not current_user or current_user.role != UserRole.ADMIN:
             raise HTTPException(status_code=404, detail="Job not found")
     return _enrich_job(db, job, current_user)
+
+
+@router.get("/{job_id}/apply-external")
+def apply_external(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != UserRole.CANDIDATE:
+        raise HTTPException(status_code=403, detail="Candidate access required")
+    job = _job_or_404(db, job_id)
+    if job.status != JobStatus.OPEN:
+        raise HTTPException(status_code=400, detail="This job is not open for applications")
+    destination = job.external_url or (job.application_url if job.is_custom else None)
+    parsed = urlparse(destination or "")
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(status_code=404, detail="This job has no valid external application link")
+
+    candidate = db.query(Candidate).filter(Candidate.user_id == current_user.id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+    application = (
+        db.query(Application)
+        .filter(Application.candidate_id == candidate.id, Application.job_id == job.id)
+        .first()
+    )
+    if application and application.status == ApplicationStatus.WITHDRAWN:
+        application.status = ApplicationStatus.APPLIED
+        application.applied_at = datetime.now(timezone.utc)
+    elif not application:
+        application = Application(
+            candidate_id=candidate.id,
+            job_id=job.id,
+            status=ApplicationStatus.APPLIED,
+            applied_at=datetime.now(timezone.utc),
+            notes="Started application on official site.",
+        )
+        db.add(application)
+        db.flush()
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="apply_external",
+            entity_type="job",
+            entity_id=job.id,
+            details=destination,
+        )
+    )
+    db.commit()
+    return RedirectResponse(url=destination, status_code=307)
 
 
 @router.post("", response_model=JobOut, status_code=201)

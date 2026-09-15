@@ -48,11 +48,14 @@ class Job(Base):
     pay_min: Mapped[float] = mapped_column(Float, nullable=True)
     pay_max: Mapped[float] = mapped_column(Float, nullable=True)
     pay_period: Mapped[str] = mapped_column(String(30), nullable=True)
+    pay_currency: Mapped[str] = mapped_column(String(3), nullable=False, default="CAD")
     application_deadline: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     source: Mapped[str] = mapped_column(String(100), nullable=False)
     external_job_id: Mapped[str] = mapped_column(String(255), nullable=False)
     job_url: Mapped[str] = mapped_column(String(1024), nullable=True)
+    external_url: Mapped[str] = mapped_column(String(1024), nullable=True)
+    is_official_link: Mapped[bool] = mapped_column(nullable=False, default=True)
 
     posted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     status: Mapped[JobStatus] = mapped_column(Enum(JobStatus), default=JobStatus.OPEN, nullable=False)

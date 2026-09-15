@@ -97,10 +97,13 @@ export interface Job {
   pay_min?: number
   pay_max?: number
   pay_period?: string
+  pay_currency?: string
   application_deadline?: string
   source: string
   external_job_id?: string
   job_url?: string
+  external_url?: string
+  is_official_link?: boolean
   status: string
   posted_at?: string
   created_at: string
@@ -235,6 +238,17 @@ export const jobsApi = {
   updateCustom: (id: number, payload: Partial<Job>) => api.patch<Job>(`/jobs/custom/${id}`, payload).then((r) => r.data),
   deleteCustom: (id: number) => api.delete(`/jobs/custom/${id}`).then(() => undefined),
   toggleCustomActive: (id: number) => api.post<Job>(`/jobs/custom/${id}/toggle`).then((r) => r.data),
+  applyExternal: async (id: number) => {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`/api/jobs/${id}/apply-external`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      redirect: 'manual',
+    })
+    if (response.status !== 307 && response.status !== 308 && response.type !== 'opaqueredirect') {
+      throw new Error('Could not start the official application')
+    }
+  },
+  importLive: () => api.post<{ source: string; imported: number; skipped_duplicates: number }>('/jobs/import-live').then((r) => r.data),
 }
 
 export const candidatesApi = {
@@ -244,6 +258,7 @@ export const candidatesApi = {
   me: () => api.get<Candidate>('/candidates/me').then((r) => r.data),
   update: (id: number, payload: Partial<Candidate>) =>
     api.patch<Candidate>(`/candidates/${id}`, payload).then((r) => r.data),
+  detectLocation: () => api.post<Candidate>('/candidates/me/detect-location').then((r) => r.data),
   getPreferences: (id: number) =>
     api.get<CandidatePreferences>(`/candidates/${id}/preferences`).then((r) => r.data),
   savePreferences: (id: number, payload: Partial<CandidatePreferences>) =>
@@ -264,6 +279,10 @@ export const candidatesApi = {
     amazon_portal_link?: string
     preferred_city?: string
   }) => api.post<Candidate>('/candidates/admin-create', payload).then((r) => r.data),
+}
+
+export const currencyApi = {
+  rates: (base = 'USD') => api.get<{ base: string; rates: Record<string, number> }>('/currency/rates', { params: { base } }).then((r) => r.data),
 }
 
 export const contactApi = {
@@ -312,8 +331,16 @@ export interface ManagedSite {
   available_slots: number
 }
 
-export function payLabel(job: Job): string {
-  if (job.pay_min && job.pay_max) return `$${job.pay_min}–$${job.pay_max}${job.pay_period ? `/${job.pay_period}` : ''}`
-  if (job.pay_min) return `From $${job.pay_min}`
+export function payLabel(job: Job, targetCurrency?: string, rates?: Record<string, number>): string {
+  const sourceCurrency = job.pay_currency || 'CAD'
+  const canConvert = Boolean(targetCurrency && rates && rates[sourceCurrency] && rates[targetCurrency])
+  const displayCurrency = canConvert ? targetCurrency! : sourceCurrency
+  const factor = canConvert ? rates![targetCurrency!] / rates![sourceCurrency] : 1
+  const formatAmount = (amount: number) => job.pay_period === 'hourly'
+    ? `${displayCurrency} ${ (amount * factor).toFixed(2)}`
+    : `${displayCurrency} ${(amount * factor).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+  const suffix = job.pay_period === 'hourly' ? '/hr' : job.pay_period === 'yearly' || job.pay_period === 'annual' ? '/yr' : ''
+  if (job.pay_min != null && job.pay_max != null) return `${formatAmount(job.pay_min)}–${formatAmount(job.pay_max)}${suffix}`
+  if (job.pay_min != null) return `From ${formatAmount(job.pay_min)}${suffix}`
   return 'Pay not listed'
 }

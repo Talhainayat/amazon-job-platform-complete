@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, MouseEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Job, JobListResponse, apiError, jobsApi, payLabel } from '../services/api'
+import { Job, JobListResponse, apiError, currencyApi, jobsApi, payLabel } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 import LazyImage from '../components/LazyImage'
 
@@ -13,6 +13,8 @@ export default function JobsPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
+  const [currency, setCurrency] = useState('CAD')
+  const [rates, setRates] = useState<Record<string, number>>({ CAD: 1 })
 
   const load = (nextPage = page, nextFilters = filters) => {
     setLoading(true)
@@ -37,6 +39,10 @@ export default function JobsPage() {
 
   useEffect(() => {
     load(1, filters)
+  }, [])
+
+  useEffect(() => {
+    currencyApi.rates('USD').then((response) => setRates(response.rates)).catch(() => {})
   }, [])
 
   const onSearch = (e: FormEvent) => {
@@ -79,13 +85,14 @@ export default function JobsPage() {
         </label>
         <button className="btn" type="submit">Search</button>
         <button className="btn secondary" type="button" onClick={() => { setFilters(emptyFilters); setPage(1); load(1, emptyFilters) }}>Clear</button>
+        <label className="field"><span>Pay currency</span><select value={currency} onChange={(e) => setCurrency(e.target.value)}><option value="CAD">CAD</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="PKR">PKR</option></select></label>
       </form>
       {loading && <div className="skeleton" />}
       {error && <div className="alert error">{error}</div>}
       {!loading && data && data.items.length === 0 && <div className="card empty">No jobs match those filters. Try a wider location or clear filters.</div>}
       <div className="grid jobs-grid" style={{ marginTop: '1rem' }}>
         {data?.items.map((job) => (
-          <JobCard key={job.id} job={job} />
+          <JobCard key={job.id} job={job} currency={currency} rates={rates} />
         ))}
       </div>
       {data && data.total > data.page_size && (
@@ -98,7 +105,19 @@ export default function JobsPage() {
   )
 }
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job, currency, rates }: { job: Job; currency: string; rates: Record<string, number> }) {
+  const openOfficialSite = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!job.external_url) return
+    try {
+      await jobsApi.applyExternal(job.id)
+      window.open(job.external_url, '_blank', 'noopener,noreferrer')
+    } catch {
+      window.open(job.external_url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
   return (
     <Link to={`/jobs/${job.id}`} style={{ textDecoration: 'none' }}>
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', cursor: 'pointer', height: '100%', transition: 'all 0.3s ease' }}>
@@ -117,13 +136,14 @@ function JobCard({ job }: { job: Job }) {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <strong>{job.title}</strong>
             <span className={`badge ${job.status}`}>{job.status}</span>
+            {job.external_url && job.is_official_link && <span className="badge">Verified official listing</span>}
           </div>
           <div className="job-meta">
             <span>{job.company || 'Hiring company'}</span>
             <span>{[job.city || job.location, job.province].filter(Boolean).join(', ') || 'Location TBA'}</span>
             <span>{job.shift || 'Shift TBA'}</span>
             <span>{job.job_type || 'Type TBA'}</span>
-            <span>{payLabel(job)}</span>
+            <span>{payLabel(job, currency, rates)}</span>
           </div>
           {job.match_explanation && job.match_explanation.length > 0 && (
             <p className="notice">{job.match_explanation.slice(0, 2).join(' · ')}</p>
@@ -133,6 +153,11 @@ function JobCard({ job }: { job: Job }) {
           <div className="match" style={{ ['--p' as string]: job.match_score, marginTop: 'auto' }}>
             <span>{Math.round(job.match_score)}%</span>
           </div>
+        )}
+        {job.external_url && (
+          <button className="btn" type="button" onClick={openOfficialSite}>
+            Apply on Official Site ↗
+          </button>
         )}
       </div>
     </Link>

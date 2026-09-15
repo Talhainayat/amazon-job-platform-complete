@@ -34,7 +34,10 @@ class RawJob:
     pay_min: float | None = None
     pay_max: float | None = None
     pay_period: str | None = None
+    pay_currency: str = "USD"
     job_url: str | None = None
+    external_url: str | None = None
+    is_official_link: bool = True
     posted_at: datetime | None = None
     source: str = ""
     extra: dict = field(default_factory=dict)

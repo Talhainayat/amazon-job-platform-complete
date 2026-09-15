@@ -7,6 +7,8 @@ export default function AdminJobsPage() {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importStatus, setImportStatus] = useState<string | null>(null)
 
   const load = () => {
     jobsApi
@@ -25,6 +27,20 @@ export default function AdminJobsPage() {
     load()
   }
 
+  const fetchLiveJobs = async () => {
+    setImporting(true)
+    setImportStatus(null)
+    try {
+      const result = await jobsApi.importLive()
+      setImportStatus(`${result.imported} live jobs imported; ${result.skipped_duplicates} duplicates skipped.`)
+      load()
+    } catch (err) {
+      setError(apiError(err, 'Could not fetch live jobs'))
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="page">
       <div className="page-header">
@@ -32,9 +48,10 @@ export default function AdminJobsPage() {
           <h1>Job management</h1>
           <p className="lede">Create, publish, close, and archive roles.</p>
         </div>
-        <Link className="btn" to="/admin/jobs/new">New job</Link>
+        <div style={{ display: 'flex', gap: 8 }}><button className="btn secondary" type="button" onClick={fetchLiveJobs} disabled={importing}>{importing ? 'Fetching…' : 'Fetch Live Web Jobs'}</button><Link className="btn" to="/admin/jobs/new">New job</Link></div>
       </div>
       {error && <div className="alert error">{error}</div>}
+      {importStatus && <div className="alert success">{importStatus}</div>}
       <div className="card" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <input placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
         <select value={status} onChange={(e) => setStatus(e.target.value)}>

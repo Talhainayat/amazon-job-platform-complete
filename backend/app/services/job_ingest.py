@@ -13,6 +13,7 @@ from app.models.match import Match
 from app.services.geo import resolve_point
 from app.services.matching import generate_matches_for_job
 from app.services.notification_service import send_manager_match_alert
+from app.services.job_fetcher import fetch_live_jobs
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +45,12 @@ def raw_job_to_model(raw: RawJob) -> Job:
         pay_min=raw.pay_min,
         pay_max=raw.pay_max,
         pay_period=raw.pay_period,
+        pay_currency=raw.pay_currency,
         source=raw.source,
         external_job_id=raw.external_job_id,
         job_url=raw.job_url,
+        external_url=raw.external_url or raw.job_url,
+        is_official_link=raw.is_official_link,
         posted_at=raw.posted_at,
         status=JobStatus.OPEN,
     )
@@ -66,6 +70,21 @@ def import_jobs(db: Session, source_name: str | None = None) -> tuple[list[Job],
             .filter(Job.source == raw.source, Job.external_job_id == raw.external_job_id)
             .first()
         )
+        if exists:
+            skipped += 1
+            continue
+        job = raw_job_to_model(raw)
+        db.add(job)
+        imported.append(job)
+    db.flush()
+    return imported, skipped
+
+
+def import_live_jobs(db: Session) -> tuple[list[Job], int]:
+    imported: list[Job] = []
+    skipped = 0
+    for raw in fetch_live_jobs():
+        exists = db.query(Job).filter(Job.source == raw.source, Job.external_job_id == raw.external_job_id).first()
         if exists:
             skipped += 1
             continue

@@ -55,6 +55,8 @@ def serialize_candidate(candidate: Candidate) -> dict:
         "city": candidate.city,
         "province": candidate.province,
         "postal_code": candidate.postal_code,
+        "latitude": candidate.latitude,
+        "longitude": candidate.longitude,
         "preferred_city": candidate.preferred_city,
         "preferred_shift": candidate.preferred_shift,
         "job_type": candidate.job_type,

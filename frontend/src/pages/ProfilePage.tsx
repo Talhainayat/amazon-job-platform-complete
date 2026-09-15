@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [prefs, setPrefs] = useState<Partial<CandidatePreferences>>({ radius_km: 25 })
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [detecting, setDetecting] = useState(false)
 
   useEffect(() => {
     if (!candidateId) return
@@ -63,6 +64,19 @@ export default function ProfilePage() {
     }
   }
 
+  const detectLocation = async () => {
+    setDetecting(true)
+    try {
+      const detected = await candidatesApi.detectLocation()
+      setCandidate(detected)
+      setStatus('Location detected. Review it and save your profile if needed.')
+    } catch (err) {
+      setStatus(apiError(err, 'Could not detect your location'))
+    } finally {
+      setDetecting(false)
+    }
+  }
+
   const onResume = async (file?: File) => {
     if (!file) return
     try {
@@ -96,7 +110,7 @@ export default function ProfilePage() {
         <label className="field"><span>Phone</span><input value={candidate.phone || ''} onChange={(e) => setCandidate({ ...candidate, phone: e.target.value })} /></label>
         <label className="field"><span>Target ZIP / postal code</span><input value={candidate.postal_code || ''} onChange={(e) => setCandidate({ ...candidate, postal_code: e.target.value })} /></label>
         <label className="field"><span>Location</span><input value={candidate.location || ''} onChange={(e) => setCandidate({ ...candidate, location: e.target.value })} /></label>
-        <label className="field"><span>City</span><input value={candidate.city || ''} onChange={(e) => setCandidate({ ...candidate, city: e.target.value })} /></label>
+        <label className="field"><span>City</span><input value={candidate.city || ''} onChange={(e) => setCandidate({ ...candidate, city: e.target.value })} /><button className="btn secondary" type="button" onClick={detectLocation} disabled={detecting}>{detecting ? 'Detecting…' : 'Auto-detect My Location'}</button></label>
         <label className="field"><span>Province / state</span><input value={candidate.province || ''} onChange={(e) => setCandidate({ ...candidate, province: e.target.value })} /></label>
         <label className="field"><span>Postal code</span><input value={candidate.postal_code || ''} onChange={(e) => setCandidate({ ...candidate, postal_code: e.target.value })} /></label>
         <label className="field"><span>Preferred job type</span><input value={candidate.job_type || ''} onChange={(e) => setCandidate({ ...candidate, job_type: e.target.value })} /></label>

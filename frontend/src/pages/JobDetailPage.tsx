@@ -24,9 +24,18 @@ export default function JobDetailPage() {
   const apply = async () => {
     if (!job) return
     
-    // For custom jobs with external application URLs, redirect to the URL
-    if (job.is_custom && job.application_url) {
-      window.open(job.application_url, '_blank', 'noopener,noreferrer')
+    const externalUrl = job.external_url || (job.is_custom ? job.application_url : undefined)
+    if (externalUrl) {
+      setBusy(true)
+      setStatus(null)
+      try {
+        await jobsApi.applyExternal(job.id)
+      } catch {
+        // The destination can still be opened when a tracking request is unavailable.
+      }
+      window.open(externalUrl, '_blank', 'noopener,noreferrer')
+      setStatus('Application started on the official site.')
+      setBusy(false)
       return
     }
     
@@ -141,7 +150,7 @@ export default function JobDetailPage() {
               </div>
             ) : (
               <button className="btn block" type="button" onClick={apply} disabled={busy}>
-                {job.is_custom ? 'Apply on their site' : 'Apply now'}
+                {job.external_url || job.is_custom ? 'Apply on Official Site ↗' : 'Quick Apply'}
               </button>
             )
           )}

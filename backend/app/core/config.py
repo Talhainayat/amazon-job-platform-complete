@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     JOB_FEED_SOURCE: str = "sample_feed"
     JOB_MONITOR_ENABLED: bool = True
     JOB_MONITOR_INTERVAL_SECONDS: int = 60
+    LIVE_JOB_FEED_URL: str = "https://arbeitnow.com/api/job-board-api"
+    FRANKFURTER_URL: str = "https://api.frankfurter.app/latest"
+    IP_GEOLOCATION_URL: str = "http://ip-api.com/json/"
 
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",

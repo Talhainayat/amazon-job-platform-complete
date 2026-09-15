@@ -53,3 +53,31 @@ def test_list_jobs_public(client, admin_headers):
     body = resp.json()
     assert "items" in body
     assert len(body["items"]) >= 1
+
+
+def test_external_apply_tracks_intent_before_redirect(client, admin_headers):
+    created = client.post(
+        "/api/jobs",
+        headers=admin_headers,
+        json={
+            "title": "Amazon Fulfillment Associate",
+            "company": "Amazon",
+            "source": "amazon_official",
+            "external_job_id": "amazon-track-001",
+            "external_url": "https://hiring.amazon.ca/",
+            "is_official_link": True,
+        },
+    )
+    assert created.status_code == 201
+    registered = client.post(
+        "/api/auth/register",
+        json={"email": "official@candidate.local", "password": "secret123", "name": "Official Candidate"},
+    )
+    headers = {"Authorization": f"Bearer {registered.json()['access_token']}"}
+    response = client.get(
+        f"/api/jobs/{created.json()['id']}/apply-external",
+        headers=headers,
+        follow_redirects=False,
+    )
+    assert response.status_code == 307
+    assert response.headers["location"] == "https://hiring.amazon.ca/"

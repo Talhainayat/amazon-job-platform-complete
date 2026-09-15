@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from uuid import uuid4
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -21,6 +21,7 @@ from app.schemas.candidate import (
 )
 from app.services.profile import serialize_candidate
 from app.services.uploads import save_resume
+from app.services.geo_service import locate_ip
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 
@@ -137,6 +138,30 @@ def get_my_candidate(db: Session = Depends(get_db), current_user: User = Depends
     )
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate profile not found")
+    return serialize_candidate(candidate)
+
+
+@router.post("/me/detect-location", response_model=CandidateOut)
+def detect_my_location(request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.CANDIDATE:
+        raise HTTPException(status_code=403, detail="Candidate access required")
+    candidate = db.query(Candidate).filter(Candidate.user_id == current_user.id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+    forwarded = request.headers.get("x-forwarded-for")
+    ip_address = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else None)
+    try:
+        location = locate_ip(ip_address)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Location provider unavailable") from exc
+    candidate.city = location.get("city") or candidate.city
+    candidate.location = location.get("city") or candidate.location
+    candidate.province = location.get("province") or candidate.province
+    candidate.postal_code = location.get("postal_code") or candidate.postal_code
+    candidate.latitude = location.get("latitude")
+    candidate.longitude = location.get("longitude")
+    db.commit()
+    db.refresh(candidate)
     return serialize_candidate(candidate)
 
 

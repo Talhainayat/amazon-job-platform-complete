@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+import re
+
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.user import UserRole
 
@@ -9,18 +11,25 @@ class Token(BaseModel):
     role: UserRole
 
 
+def _normalize_email(value: str) -> str:
+    normalized = value.strip().lower()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", normalized):
+        raise ValueError("Invalid email address")
+    return normalized
+
+
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
     @field_validator("email")
     @classmethod
-    def normalize_email(cls, value: EmailStr) -> str:
-        return str(value).strip().lower()
+    def normalize_email(cls, value: str) -> str:
+        return _normalize_email(value)
 
 
 class RegisterCandidateRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str = Field(min_length=8, max_length=72)
     name: str = Field(min_length=2, max_length=255)
     phone: str | None = None
@@ -32,8 +41,8 @@ class RegisterCandidateRequest(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def normalize_email(cls, value: EmailStr) -> str:
-        return str(value).strip().lower()
+    def normalize_email(cls, value: str) -> str:
+        return _normalize_email(value)
 
 
 class MeResponse(BaseModel):

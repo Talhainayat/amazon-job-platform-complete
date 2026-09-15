@@ -17,7 +17,9 @@
       "pay_min": 21.5,
       "pay_max": 24.5,
       "pay_period": "hourly",
-      "job_url": "https://hiring.amazon.ca"
+      "job_url": "https://hiring.amazon.ca/",
+      "external_url": "https://hiring.amazon.ca/",
+      "is_official_link": true
     },
     {
       "external_job_id": "amz-wh-brampton-night-002",
@@ -36,7 +38,9 @@
       "pay_min": 22.0,
       "pay_max": 26.0,
       "pay_period": "hourly",
-      "job_url": "https://hiring.amazon.ca"
+      "job_url": "https://hiring.amazon.ca/",
+      "external_url": "https://hiring.amazon.ca/",
+      "is_official_link": true
     },
     {
       "external_job_id": "amz-wh-miss-day-003",
@@ -55,7 +59,9 @@
       "pay_min": 22.5,
       "pay_max": 25.0,
       "pay_period": "hourly",
-      "job_url": "https://hiring.amazon.ca"
+      "job_url": "https://hiring.amazon.ca/",
+      "external_url": "https://hiring.amazon.ca/",
+      "is_official_link": true
     },
     {
       "external_job_id": "amz-driver-gta-004",
@@ -73,7 +79,9 @@
       "pay_min": 23.0,
       "pay_max": 28.0,
       "pay_period": "hourly",
-      "job_url": "https://hiring.amazon.ca"
+      "job_url": "https://logistics.amazon.com/marketing",
+      "external_url": "https://logistics.amazon.com/marketing",
+      "is_official_link": true
     },
     {
       "external_job_id": "amz-wh-calgary-day-005",
@@ -91,7 +99,9 @@
       "pay_min": 20.5,
       "pay_max": 23.5,
       "pay_period": "hourly",
-      "job_url": "https://hiring.amazon.ca"
+      "job_url": "https://hiring.amazon.ca/",
+      "external_url": "https://hiring.amazon.ca/",
+      "is_official_link": true
     }
   ]
 }

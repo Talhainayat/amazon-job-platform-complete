@@ -32,10 +32,13 @@ class JobBase(BaseModel):
     pay_min: float | None = Field(default=None, ge=0)
     pay_max: float | None = Field(default=None, ge=0)
     pay_period: str | None = None
+    pay_currency: str = "CAD"
     application_deadline: datetime | None = None
     source: str = "manual_upload"
     external_job_id: str | None = None
     job_url: str | None = None
+    external_url: str | None = None
+    is_official_link: bool = True
     posted_at: datetime | None = None
     is_custom: bool = False
     application_url: str | None = None
@@ -80,8 +83,11 @@ class JobUpdate(BaseModel):
     pay_min: float | None = Field(default=None, ge=0)
     pay_max: float | None = Field(default=None, ge=0)
     pay_period: str | None = None
+    pay_currency: str | None = None
     application_deadline: datetime | None = None
     job_url: str | None = None
+    external_url: str | None = None
+    is_official_link: bool | None = None
     status: JobStatus | None = None
     application_url: str | None = None
     badge_status: str | None = None

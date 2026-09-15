@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+import re
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.candidate import CandidateStatus
 
@@ -16,7 +18,7 @@ def _normalize_skills(value: Any) -> list[str] | None:
 
 class CandidateBase(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     phone: str | None = None
     location: str | None = None
     city: str | None = None
@@ -38,6 +40,14 @@ class CandidateBase(BaseModel):
     @classmethod
     def parse_skills(cls, value):
         return _normalize_skills(value)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", normalized):
+            raise ValueError("Invalid email address")
+        return normalized
 
     @field_validator("phone")
     @classmethod
@@ -98,6 +108,8 @@ class CandidateOut(CandidateBase):
     interview_scheduled: bool = False
     created_at: datetime
     updated_at: datetime
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class CandidatePreferenceBase(BaseModel):
@@ -126,8 +138,18 @@ class CandidatePreferenceOut(CandidatePreferenceBase):
 class AdminCandidateCreate(BaseModel):
     name: str = Field(min_length=2, max_length=255)
     phone: str | None = None
-    email: EmailStr | None = None
+    email: str | None = None
     preferred_city: str | None = None
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", normalized):
+            raise ValueError("Invalid email address")
+        return normalized
     postal_code: str | None = None
     preferred_shift: str | None = None
     work_eligibility: str | None = None
