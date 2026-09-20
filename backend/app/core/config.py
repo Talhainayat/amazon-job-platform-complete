@@ -9,6 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict  # pyright: ignore[reportMissingImports]
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -44,7 +45,7 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_WHATSAPP_NUMBER: str = ""
     TWILIO_SMS_NUMBER: str = ""
-    ADMIN_ALERT_PHONE_NUMBER: str = "+923332158308"
+    ADMIN_ALERT_PHONE_NUMBER: str = ""
     ALERT_WEBHOOK_URL: str = ""
     HIGH_MATCH_THRESHOLD: float = 80.0
 
@@ -52,6 +53,7 @@ class Settings(BaseSettings):
     JOB_FEED_SOURCE: str = "sample_feed"
     JOB_MONITOR_ENABLED: bool = True
     JOB_MONITOR_INTERVAL_SECONDS: int = 60
+    LOG_LEVEL: str = "INFO"
     LIVE_JOB_FEED_URL: str = "https://arbeitnow.com/api/job-board-api"
     FRANKFURTER_URL: str = "https://api.frankfurter.app/latest"
     IP_GEOLOCATION_URL: str = "http://ip-api.com/json/"
@@ -74,6 +76,19 @@ class Settings(BaseSettings):
     MAX_RESUME_BYTES: int = 5 * 1024 * 1024
 
     SEED_DEMO_DATA: bool = True
+
+    @model_validator(mode="after")
+    def validate_runtime_settings(self):
+        if self.ENV.lower() == "production":
+            if self.DEBUG:
+                raise ValueError("DEBUG must be false in production")
+            if not self.SECRET_KEY or self.SECRET_KEY.startswith("CHANGE_ME"):
+                raise ValueError("SECRET_KEY must be set to a strong value in production")
+            if not self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
+                raise ValueError("CORS_ORIGINS must contain explicit production origins")
+            if self.SEED_DEMO_DATA:
+                raise ValueError("SEED_DEMO_DATA must be false in production")
+        return self
 
     model_config = SettingsConfigDict(
         env_file=(str(BACKEND_DIR.parent / ".env"), str(BACKEND_DIR / ".env")),

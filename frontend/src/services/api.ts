@@ -1,6 +1,9 @@
 import axios, { AxiosError } from 'axios'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  timeout: 15000,
+})
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
@@ -17,6 +20,7 @@ export function apiError(err: unknown, fallback = 'Something went wrong'): strin
   const detail = ax.response?.data?.detail
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) return detail.join(' ')
+  if (err instanceof Error && err.message) return err.message
   return fallback
 }
 

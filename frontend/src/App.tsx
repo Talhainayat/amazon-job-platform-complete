@@ -21,12 +21,14 @@ import AdminCustomJobsPage from './pages/AdminCustomJobsPage'
 import AdminCandidatesPage from './pages/AdminCandidatesPage'
 import AdminCandidateDetailPage from './pages/AdminCandidateDetailPage'
 import AdminApplicationsPage from './pages/AdminApplicationsPage'
+import ErrorBoundary from './components/ErrorBoundary'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
@@ -135,8 +137,9 @@ export default function App() {
             />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }

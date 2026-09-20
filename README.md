@@ -131,6 +131,30 @@ Serves at `http://127.0.0.1:8000` — Swagger UI at `/docs`.
 ```
 Serves at `http://127.0.0.1:5173` (Vite proxies `/api` to the backend).
 
+For a separately deployed frontend, set `VITE_API_BASE_URL` to the public API
+base URL, for example `https://api.example.com/api`, before running `npm run
+build`. The frontend client uses a 15-second request timeout and displays a
+recoverable fallback if a render error reaches the application boundary.
+
+### Production container
+
+The backend includes `backend/Dockerfile` for Hugging Face Spaces, Render, or
+another container host:
+
+```powershell
+docker build -t job-platform-api ./backend
+docker run --rm -p 7860:7860 --env-file .env job-platform-api
+```
+
+The image listens on `PORT` when supplied and otherwise uses `7860`. Configure
+`ENV=production`, `DEBUG=false`, a strong random `SECRET_KEY`, explicit
+`CORS_ORIGINS`, and `SEED_DEMO_DATA=false` in production. The application
+rejects insecure production settings during startup instead of silently
+running with development defaults.
+
+Health checks are available at `GET /health`; interactive API documentation is
+available at `/docs`.
+
 **Redis + Celery (optional, only if you want background job processing):**
 ```powershell
 # Terminal 1 - Redis (requires Redis installed locally, e.g. via WSL or Memurai on Windows)
@@ -150,11 +174,10 @@ cd backend
 pytest -v
 ```
 
-Covers: health endpoint, auth (register/login/me), candidate CRUD +
-preferences, job CRUD + duplicate detection, matching engine scoring, and
-application tracking. 22 tests, all passing in the sandbox this project was
-built in (see **Testing status** below for what that does and doesn't cover
-on your machine).
+Covers: health endpoint and error responses, auth (register/login/me),
+candidate CRUD + preferences, job CRUD + duplicate detection, matching engine
+scoring, and application tracking. Run `pytest -q` from `backend/` to see the
+current count.
 
 ---
 
